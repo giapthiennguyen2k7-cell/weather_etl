@@ -9,11 +9,14 @@ import sqlite3
 from pathlib import Path
 
 import requests
+import time
 
 URL = "https://api.open-meteo.com/v1/forecast"
 PARAMS = {
-    # TODO (bước 0): đọc docs Open-Meteo rồi điền
-    # latitude, longitude, hourly (temperature_2m, relative_humidity_2m), timezone
+    "latitude":21.03, 
+    "longitude":105.85, 
+    "hourly":"temperature_2m,relative_humidity_2m",
+    "timezone": "Asia/Bangkok"
 }
 RAW = Path("data/raw.json")
 DB = "weather.db"
@@ -25,13 +28,28 @@ logging.basicConfig(
 
 
 def fetch():
-    """Extract: gọi API, lưu JSON gốc vào data/raw.json, trả về dict."""
-    # TODO (bước 1):
-    # - requests.get(URL, params=PARAMS, timeout=...)
-    # - raise_for_status(), bắt lỗi mạng bằng try/except
-    # - tạo thư mục data/ nếu chưa có, ghi JSON gốc ra RAW
-    # - return resp.json()
-    ...
+    for attempt in range(3):
+        try:
+            resp = requests.get(URL, params = PARAMS, timeout = 10)
+            resp.raise_for_status()
+            data = resp.json()
+            print(data)
+
+            RAW.parent.mkdir(exist_ok=True)
+            with open(RAW, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+            return data
+        except requests.exceptions.Timeout:
+            logging.warning("Time out, thử lại lần %d", attempt + 1)
+            time.sleep(10)
+        except requests.exceptions.HTTPError:
+            logging.warning("HTTPError thử lại lần %d", attempt + 1)
+            time.sleep(10)
+        except requests.exceptions.ConnectionError: 
+            logging.warning("ConnectionError thử lại lần %d", attempt + 1)
+            time.sleep(10)
+    raise RuntimeError("Không lấy được dữ liệu sau 3 lần thử")
 
 
 def to_rows(data):
