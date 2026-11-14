@@ -9,7 +9,7 @@ import sqlite3
 from pathlib import Path
 
 import requests
-import time
+import time 
 
 URL = "https://api.open-meteo.com/v1/forecast"
 PARAMS = {
@@ -56,8 +56,7 @@ def to_rows(data):
     """Transform: biến các mảng song song thành từng dòng (time, temp, humidity)."""
     h = data["hourly"]
     for t, temp, hum in zip(h["time"], h["temperature_2m"], h["relative_humidity_2m"]):
-        # TODO (bước 2): xử lý None, ép kiểu, rồi yield (t, temp, hum)
-        ...
+        yield (t, float(temp) if temp is not None else temp, int(hum) if hum is not None else hum)
 
 
 def load(rows):
