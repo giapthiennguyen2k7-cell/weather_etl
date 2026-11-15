@@ -62,12 +62,28 @@ def to_rows(data):
 def load(rows):
     """Load: ghi vào SQLite, chạy lại nhiều lần không bị trùng dòng."""
     conn = sqlite3.connect(DB)
-    with conn:
-        # TODO (bước 3):
-        # - CREATE TABLE IF NOT EXISTS ... (time là PRIMARY KEY)
-        # - executemany(...) với dấu ?, dùng upsert (ON CONFLICT ... DO UPDATE)
-        ...
-    conn.close()
+    creat_sql =""" CREATE TABLE IF NOT EXISTS weather(
+                    time TEXT PRIMARY KEY,
+                    temperature_2m FLOAT,
+                    relative_humidity_2m INT      
+                );"""
+    insert_table = """ INSERT INTO weather(time, temperature_2m, relative_humidity_2m)
+                        VALUES(?,?,?) 
+                        ON CONFLICT(time) DO UPDATE SET 
+                            temperature_2m = excluded.temperature_2m,
+                            relative_humidity_2m = excluded.relative_humidity_2m 
+                ;"""
+    cursor = conn.cursor()
+
+    try:
+        with conn:
+            cursor.execute(creat_sql)
+            cursor.executemany(insert_table, rows)
+        logging.info("Đã ghi %d dòng vào %s", cursor.rowcount, DB)
+    except sqlite3.Error:
+        logging.exception("Lỗi khi ghi vào SQLite")
+        raise
+    finally: conn.close()
 
 
 def main():
