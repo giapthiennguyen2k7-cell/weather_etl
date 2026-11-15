@@ -79,7 +79,7 @@ def load(rows):
         with conn:
             cursor.execute(creat_sql)
             cursor.executemany(insert_table, rows)
-        logging.info("Đã ghi %d dòng vào %s", cursor.rowcount, DB)
+        return cursor.rowcount
     except sqlite3.Error:
         logging.exception("Lỗi khi ghi vào SQLite")
         raise
@@ -87,11 +87,15 @@ def load(rows):
 
 
 def main():
-    data = fetch()
-    load(to_rows(data))
-    # TODO (bước 4): log số dòng lấy được và số dòng đã ghi
-    logging.info("Xong")
-
-
+    try:
+        data = fetch()
+        rows = list(to_rows(data))
+        written = load(rows)
+        logging.info("Số dòng lấy được %d", len(rows))
+        logging.info("Số dòng đã ghi %d", written)
+        logging.info("Xong")
+    except Exception:
+        logging.exception("Pipeline thất bại")
+        raise SystemExit(1)
 if __name__ == "__main__":
     main()
